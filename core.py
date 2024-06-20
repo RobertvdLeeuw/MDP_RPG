@@ -1,5 +1,6 @@
 from mdp import ActionsFromTransitions, MDP, State
 
+from math import exp
 from random import choice, choices, random
 
 from matplotlib import pyplot as plt
@@ -87,11 +88,20 @@ def Plot(x: list, title: str) -> None:
     plt.show()
 
 
-def ChooseAction(policy: dict, epsilon=0):
+def ChooseActionEpsilon(policy: dict, epsilon=0):
     if random() < epsilon:
         return choice(list(policy.keys()))
 
     return choices(list(policy.keys()), list(policy.values()))[0]
+
+
+def CreateBoltzmannPolicy(qTable: dict, t: float) -> dict:
+    assert t > 0
+
+    def GetP(s, a) -> float:
+        return exp(qTable[s][a] / t) / sum(exp(qTable[s][b] / t) for b in qTable[s])
+
+    return {s: {a: GetP(s, a) for a in actions} for s, actions in qTable.items()}
 
 
 def Simulate(policy: dict, mdp: MDP, episodes: int, steps: int) -> tuple[list, list]:

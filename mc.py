@@ -1,13 +1,17 @@
-from core import ChooseAction, GenerateMDP, GenerateRandomPolicy
+from core import ChooseActionEpsilon, GenerateMDP, GenerateRandomPolicy
 from gpi import UpdatePolicy
 from mdp import State
 
+import matplotlib.pyplot as plt
+from pprint import pprint
+from scipy.signal import savgol_filter
 
-alpha = 0.1  # Learning rate
-gamma = 0.9  # Discount factor between (0-1)
-episodes = 4 * 2000  # Number of episodes to learn, keep this a multiple of four for nice plotting
+
+alpha = 0.25  # Learning rate
+gamma = 1  # Discount factor between (0-1)
+episodes = 4000
 T = 100  # Maximum steps in an episode
-epsilon = 0.05  # Exploration rate between (0-1)
+epsilon = 0.025  # Exploration rate between (0-1)
 
 mdp = GenerateMDP(maxLevel=5,
                   attackedChance=0,
@@ -17,19 +21,21 @@ mdp = GenerateMDP(maxLevel=5,
 vTable = {s: 0 for s in mdp.states}
 qTable = {s: {a: 0 for a in mdp.getActions(s)} for s in mdp.states}
 
+policy = GenerateRandomPolicy(mdp)
+
 
 def Update(value: float, Gt: float) -> float:
     return value + alpha * (Gt - value)
 
 
-policy = GenerateRandomPolicy(mdp)
+totalRewards = []
 
 for _ in range(episodes):
     episode = []
     state = mdp.reset()
 
     for t in range(T):
-        action = ChooseAction(policy[state], epsilon)
+        action = ChooseActionEpsilon(policy[state], epsilon)
 
         next_state, reward, terminated, truncated, info = mdp.step(action, message=False)
         episode.append((state, action, reward))
@@ -46,3 +52,16 @@ for _ in range(episodes):
         vTable[state] = Update(vTable[state], G)  # Every-visit update
 
     policy = UpdatePolicy(policy, qTable)
+    totalRewards.append(sum([r for s, a, r in episode]))
+
+
+def Plot(x: list, title: str) -> None:
+    moving_averages = savgol_filter(x, 35, 3)
+    plt.plot(moving_averages, label=f'Total Reward)', color='orange')
+    plt.title(f'Rewards per Episode ({title})')
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward')
+    plt.show()
+
+
+Plot(totalRewards, f'alpha={alpha}, gamma={gamma}, epsilon={epsilon}')
