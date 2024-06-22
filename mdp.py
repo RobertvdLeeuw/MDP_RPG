@@ -18,13 +18,6 @@ class State(frozendict):
         return self.__str__()
 
 
-class Agent:
-    def __init__(self, startingState=None):
-        self.startingState = startingState
-        self.currentState = self.startingState
-        self.stepsTaken = 0
-
-
 class MDP:
     def __init__(self, states, statesPlus, actions, transitions=None, rewards=None, gamma=0.9, eps=1e-6, T=100, costOfLiving=0,
                  startingState=None):
@@ -76,11 +69,14 @@ class MDP:
 
     @property
     def actionSpace(self) -> int:
-        return len(set(self.allActions))  # To set to remove duplicate nextActions
+        return len(set(self.allActions))  # To set to remove duplicate actions
 
     def getActions(self, state=None) -> list:
         if state is None:
             state = self.currentState
+
+        if state not in self.states:
+            return []
 
         return self.actions[state]
 
@@ -142,7 +138,7 @@ def Test(mdp: MDP, how: str, maxLength: int) -> None:
         state = newState
 
 
-def ActionsFromTransitions(t: dict) -> dict:  # state: {action1: outcomes, action2: outcomes} -> state: [nextActions]
+def ActionsFromTransitions(t: dict) -> dict:  # state: {action1: outcomes, action2: outcomes} -> state: [actions]
     return {s: list(A) for s, A in t.items()}
 
 
